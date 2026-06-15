@@ -1,66 +1,30 @@
 'use client'
 import { Dispatch, ReactNode, SetStateAction, useState } from "react";
-
+import { coords, PieceData, SquareProps } from './types/types.ts'
+import { PieceName } from './types/enums.ts'
+import { startingBoardState } from './data/startState.ts'
+import { Move } from "./piece moves/moves.ts";
 
 
 export default function Board() {
-        type SquareProps = {
-                name: string
-                isLight: boolean
-                piece: PieceData
-        }
-
-        type PieceData = {
-                name?: PieceName
-                isWhite?: boolean
-        }
-
-        enum PieceName {
-                Bishop,
-                King,
-                Knight,
-                Pawn,
-                Queen,
-                Rook
-        }
-
-        const startingBoardState: PieceData[][] = [
-                [{ isWhite: false, name: PieceName.Rook }, { isWhite: false, name: PieceName.Knight }, { isWhite: false, name: PieceName.Bishop }, { isWhite: false, name: PieceName.Queen }, { isWhite: false, name: PieceName.King }, { isWhite: false, name: PieceName.Bishop }, { isWhite: false, name: PieceName.Knight }, { isWhite: false, name: PieceName.Rook }],
-                [{ isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }, { isWhite: false, name: PieceName.Pawn }],
-                [{}, {}, {}, {}, {}, {}, {}, {}],
-                [{}, {}, {}, {}, {}, {}, {}, {}],
-                [{}, {}, {}, {}, {}, {}, {}, {}],
-                [{}, {}, {}, {}, {}, {}, {}, {}],
-                [{ isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }, { isWhite: true, name: PieceName.Pawn }],
-                [{ isWhite: true, name: PieceName.Rook }, { isWhite: true, name: PieceName.Knight }, { isWhite: true, name: PieceName.Bishop }, { isWhite: true, name: PieceName.King }, { isWhite: true, name: PieceName.Queen }, { isWhite: true, name: PieceName.Bishop }, { isWhite: true, name: PieceName.Knight }, { isWhite: true, name: PieceName.Rook }],
-        ]
-
-        type coords = {
-                row: string
-                col: string
-        }
+        const [boardState, setBoardState] = useState(startingBoardState)
+        const [lastClicked, setLastClicked] = useState("")
 
         const movePiece = (boardState: PieceData[][], setBoardState: Dispatch<SetStateAction<{}[][] | PieceData[][]>>, start: coords, end: coords) => {
                 const flatBoard = boardState.flat()
                 const reversedRow = [7, 6, 5, 4, 3, 2, 1, 0]
-                const flatStartCoord = 8 * reversedRow[parseInt(start.row)] + (parseInt(start.col))
-                const pieceToMove: PieceData = flatBoard[flatStartCoord]
-                if (pieceToMove.name == undefined) return
-                const flatEndCoord = 8 * reversedRow[parseInt(end.row)] + (parseInt(end.col))
-
-
+                const flatStartCoord = 8 * reversedRow[start.row] + start.col
                 flatBoard[flatStartCoord] = {}
-                flatBoard[flatEndCoord] = pieceToMove
 
+                const flatEndCoord = 8 * reversedRow[end.row] + end.col
+                const pieceToMove = getPieceAtSquare(start, boardState)
+
+                if (pieceToMove.name == undefined) return null
+                flatBoard[flatEndCoord] = pieceToMove
                 const newBoardState = [];
                 while (flatBoard.length) newBoardState.push(flatBoard.splice(0, 8));
-
                 setBoardState(newBoardState)
         }
-
-        const [boardState, setBoardState] = useState(startingBoardState)
-
-
 
         const pieceImageName = {
                 [PieceName.Pawn]: "p",
@@ -71,6 +35,76 @@ export default function Board() {
                 [PieceName.Rook]: "r",
         }
 
+        function getPieceAtSquare(coord: coords, boardState: PieceData[][]) {
+                const flatBoard = boardState.flat()
+                const reversedRow = [7, 6, 5, 4, 3, 2, 1, 0]
+                const flatStartCoord = 8 * reversedRow[coord.row] + coord.col
+                const pieceToMove: PieceData = flatBoard[flatStartCoord]
+                return pieceToMove
+        }
+
+
+        const handleLastClicked = async (squareName: string) => {
+                console.log(squareName)
+                if (lastClicked == "") {
+                        const coord = squareNameToCoord(squareName)
+                        const piece = getPieceAtSquare(coord, boardState)
+                        if (piece == null || piece.name == undefined) {
+                                // selected square doesn't have a piece in it
+                                setLastClicked("")
+                                console.log(`${squareName} doesn't have a piece in it`)
+                                return
+                        }
+                        setLastClicked(squareName)
+                        console.log("Set: " + squareName)
+                } else {
+                        const startCoord = squareNameToCoord(lastClicked)
+                        const endCoord = squareNameToCoord(squareName)
+                        const piece = getPieceAtSquare(startCoord, boardState)
+                        if (piece.name == undefined) {
+                                // selected square doesn't have a piece in it
+                                setLastClicked("")
+                                console.log(`${squareName} doesn't have a piece in it`)
+                                return
+                        }
+                        const validMoves = Move.getValidMoves(piece.name, startCoord, boardState)
+
+                        if (validMoves.filter(validMove => equalCoords(validMove, endCoord)).length > 0) {
+                                console.log("Valid move")
+                                movePiece(boardState, setBoardState, startCoord, endCoord)
+                                console.log("Start: " + JSON.stringify(startCoord))
+                                console.log("End: " + JSON.stringify(endCoord))
+                                console.log("Moved to: " + squareName)
+                        } else {
+                                console.log("Not valid move")
+                                console.log("Start: " + JSON.stringify(startCoord))
+                                console.log("End: " + JSON.stringify(endCoord))
+                        }
+
+                        setLastClicked("")
+                }
+        }
+
+        function equalCoords(coord1: coords, coord2: coords): boolean {
+                const rowEq = coord1.row == coord2.row
+                const colEq = coord1.col == coord2.col
+                return rowEq && colEq
+                // return rowEq && colEq
+        }
+
+        function squareNameToCoord(squareName: string): coords {
+                const colToNumber: { [key: string]: number } = { "A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7 }
+                const coord = { col: colToNumber[squareName.charAt(0)], row: parseInt(squareName.charAt(1)) - 1 }
+                return coord
+        }
+
+        function coordsToSquareName(coord: coords): string {
+                const numberToCol = ["A", "B", "C", "D", "E", "F", "G", "H"]
+                const squareName = `${numberToCol[coord.col]}${coord.row}}`
+                return squareName
+        }
+
+
         function Piece(props: PieceData) {
                 if (props.isWhite == undefined || props.name == undefined) return <></>
                 const pieceImagePath = `/chess pieces/${props.isWhite ? "white" : "black"}/${pieceImageName[props.name]}.svg`
@@ -79,24 +113,6 @@ export default function Board() {
                         <img src={pieceImagePath} alt={bp} id={pieceImagePath} />
                 )
         }
-        const [lastClicked, setLastClicked] = useState("")
-        const handleLastClicked = async (squareName: string) => {
-                console.log(squareName)
-                if (lastClicked == "") {
-                        setLastClicked(squareName)
-                        console.log("Set: " + squareName)
-                } else {
-                        const colToNumber = { "A": "0", "B": "1", "C": "2", "D": "3", "E": "4", "F": "5", "G": "6", "H": "7" }
-                        const endCoord = { col: colToNumber[squareName.charAt(0)], row: squareName.charAt(1) - 1 }
-                        const startCoord = { col: colToNumber[lastClicked.charAt(0)], row: lastClicked.charAt(1) - 1 }
-                        movePiece(boardState, setBoardState, startCoord, endCoord)
-                        console.log("Start: " + JSON.stringify(startCoord))
-                        console.log("End: " + JSON.stringify(endCoord))
-                        console.log("Moved to: " + squareName)
-                        setLastClicked("")
-                }
-        }
-
 
         function Square(props: SquareProps) {
                 const bgColorMap = { bgWhite: "bg-gray-300", bgBlack: "bg-gray-700" }
@@ -137,10 +153,9 @@ export default function Board() {
         }
 
         const Squares = () => {
-                const size = "80"
                 return (
                         <>
-                                <div className={`grid w-${size} h-${size} grid-rows-8 grid-cols-8 bg-zinc-50 font-sans dark:bg-black`}> {
+                                <div className={`grid max-h-200 max-w-200 grid-rows-8 grid-cols-8 bg-zinc-50 font-sans dark:bg-black`}> {
                                         squareContents2().map(row => {
                                                 return (
                                                         row.map(squareProps => {
