@@ -12,20 +12,24 @@ export const Move = {
 		switch (piece) {
 			case PieceName.Knight:
 				const consideredMoves: coords[] = [];
-				consideredMoves.push(this.addToCoord(startingCoords, 2, 1))
-				consideredMoves.push(this.addToCoord(startingCoords, 1, 2))
-				consideredMoves.push(this.addToCoord(startingCoords, -2, -1))
-				consideredMoves.push(this.addToCoord(startingCoords, -1, -2))
-				consideredMoves.push(this.addToCoord(startingCoords, 2, -1))
-				consideredMoves.push(this.addToCoord(startingCoords, 1, -2))
-				consideredMoves.push(this.addToCoord(startingCoords, -2, 1))
-				consideredMoves.push(this.addToCoord(startingCoords, -1, 2))
+				const validRelatives = [
+					{ row: 2, col: 1 },
+					{ row: 1, col: 2 },
+					{ row: -2, col: -1 },
+					{ row: -1, col: -2 },
+					{ row: 2, col: -1 },
+					{ row: 1, col: -2 },
+					{ row: -2, col: 1 },
+					{ row: -1, col: 2 }
+				]
+
+        validRelatives.forEach(validRelative => consideredMoves.push(this.addToCoord(startingCoords, validRelative)));
 				console.log("Considered moves: ")
 				console.log(JSON.stringify(consideredMoves))
 				const validMoves = consideredMoves.filter(coord => !this.isOutsideOfBoard(coord))
 				console.log("Valid moves: ")
 				console.log(JSON.stringify(validMoves))
-				
+
 				return validMoves
 
 				break;
@@ -38,8 +42,8 @@ export const Move = {
 		return validCoords
 	},
 
-	addToCoord(coords: coords, addRow: number, addColumn: number): coords {
-		return {col: coords.col + addColumn, row: coords.row + addRow}
+	addToCoord(coords: coords, moveCoord: coords): coords {
+		return { col: coords.col + moveCoord.col, row: coords.row + moveCoord.row }
 	},
 
 	isOutsideOfBoard(coord: coords) {
