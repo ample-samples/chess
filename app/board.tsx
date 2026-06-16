@@ -5,6 +5,14 @@ import { PieceName } from './types/enums.ts'
 import { startingBoardState } from './data/startState.ts'
 import { Move } from "./piece moves/moves.ts";
 
+export function getPieceAtSquare(coord: coords, boardState: PieceData[][]): PieceData {
+    const flatBoard = boardState.flat()
+    const reversedRow = [7, 6, 5, 4, 3, 2, 1, 0]
+    const flatStartCoord = 8 * reversedRow[coord.row] + coord.col
+    const pieceToMove: PieceData = flatBoard[flatStartCoord]
+    return pieceToMove
+  }
+
 
 export default function Board() {
   const [boardState, setBoardState] = useState(startingBoardState)
@@ -35,15 +43,6 @@ export default function Board() {
     [PieceName.Rook]: "r",
   }
 
-  function getPieceAtSquare(coord: coords, boardState: PieceData[][]) {
-    const flatBoard = boardState.flat()
-    const reversedRow = [7, 6, 5, 4, 3, 2, 1, 0]
-    const flatStartCoord = 8 * reversedRow[coord.row] + coord.col
-    const pieceToMove: PieceData = flatBoard[flatStartCoord]
-    return pieceToMove
-  }
-
-
   const handleLastClicked = async (squareName: string) => {
     console.log(squareName)
     if (lastClicked == "") {
@@ -67,7 +66,7 @@ export default function Board() {
         console.log(`${squareName} doesn't have a piece in it`)
         return
       }
-      const validMoves = Move.getValidMoves(piece.name, startCoord, boardState)
+      const validMoves = Move.getValidMoves(piece, startCoord, boardState)
 
       if (validMoves.filter(validMove => equalCoords(validMove, endCoord)).length > 0) {
         console.log("Valid move")
@@ -76,7 +75,7 @@ export default function Board() {
         console.log("End: " + JSON.stringify(endCoord))
         console.log("Moved to: " + squareName)
       } else {
-        console.log("Not valid move")
+        console.log(JSON.stringify(endCoord) + ": not valid move")
         console.log("Start: " + JSON.stringify(startCoord))
         console.log("End: " + JSON.stringify(endCoord))
       }
